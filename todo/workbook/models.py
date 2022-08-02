@@ -1,4 +1,3 @@
-from django.contrib.auth import get_user
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -11,7 +10,7 @@ class TaskStatus(models.Model):
 
 
 class Task(models.Model):
-    name = models.CharField(max_length=8, verbose_name="Заголовок")
+    name = models.CharField(max_length=256, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание задачи")
 
     status = models.ForeignKey(TaskStatus, on_delete=models.CASCADE, verbose_name="Статус")
@@ -22,6 +21,15 @@ class Task(models.Model):
 
     def __str__(self):
         return self.name
+
+    def status_name(self) -> str:
+        return self.status.name
+
+    def author_name(self) -> str:
+        return self.author.username
+
+    def users_names(self) -> list:
+        return [task_user.user.username for task_user in self.users.all()]
 
 
 class TaskUser(models.Model):
