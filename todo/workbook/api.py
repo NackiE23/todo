@@ -1,10 +1,11 @@
+from django.http import Http404
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import permissions
 
 from . import models
-from .serializers import TaskSerializer, UserSerializer, TaskUserSerializer
+from .serializers import TaskSerializer, UserSerializer, TaskUserSerializer, TaskImageSerializer
 
 
 class TaskUserAPIView(APIView):
@@ -21,6 +22,28 @@ class TaskUserAPIView(APIView):
             task_user_objs = models.TaskUser.objects.filter(user__pk=user_pk)
 
         serializer = TaskUserSerializer(task_user_objs, many=True)
+        return Response(serializer.data)
+
+
+class TaskImageAPIView(APIView):
+    def get(self, request, pk):
+        serializer = TaskImageSerializer(models.TaskImage.objects.get(pk=pk),
+                                         context={'request': request})
+        return Response(serializer.data)
+
+
+class TaskAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return models.Task.objects.get(pk=pk)
+        except models.Task.DoesNotExist:
+            raise Http404
+
+    def get(self, request, task_pk):
+        serializer = TaskSerializer(self.get_object(task_pk), many=False)
+
         return Response(serializer.data)
 
 

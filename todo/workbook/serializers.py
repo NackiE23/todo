@@ -35,3 +35,9 @@ class TaskUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskUser
         fields = ('task', )
+
+
+class TaskImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskImage
+        fields = ('task', 'image', )
