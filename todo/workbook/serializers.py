@@ -22,7 +22,15 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
+class TaskImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskImage
+        fields = ('image', )
+
+
 class TaskSerializer(serializers.ModelSerializer):
+    images = TaskImageSerializer(many=True)
+
     class Meta:
         model = Task
         fields = ('id', 'name', 'description', 'status', 'status_name', 'author', 'author_name',
@@ -35,9 +43,3 @@ class TaskUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskUser
         fields = ('task', )
-
-
-class TaskImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TaskImage
-        fields = ('task', 'image', )

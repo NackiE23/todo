@@ -1,11 +1,43 @@
 from django.http import Http404
+from rest_framework.decorators import api_view
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import permissions
+from rest_framework import permissions, status
 
 from . import models
+from .permissions import IsAuthorOrReadOnly
 from .serializers import TaskSerializer, UserSerializer, TaskUserSerializer, TaskImageSerializer
+
+
+@api_view(['GET', 'POST'])
+def close_task(request, task_pk):
+    task_obj = models.Task.objects.get(pk=task_pk)
+
+    if request.user == task_obj.author:
+        task_obj.status = models.TaskStatus.objects.get(name="Закрыто")
+        task_obj.save()
+
+        return Response({'detail': f'Задача успешно переведена в статус "Закрыто"!'})
+    else:
+        return Response({'detail': f'Вы не являетесь автором этой задачи. Операция была отклонена!'})
+
+
+@api_view(['GET', 'POST'])
+def start_task(request, task_pk):
+    task_obj = models.Task.objects.get(pk=task_pk)
+
+    if request.user.pk in [task_user.user.pk for task_user in task_obj.users.all()]:
+        if task_obj.status.name == "Новая":
+            task_obj.status = models.TaskStatus.objects.get(name="В работе")
+            task_obj.save()
+
+            return Response({'detail': f'Задача успешно переведена в статус "В работе"!'})
+        else:
+            return Response({'detail': f'Задача не находится в статусе "Новая". Операция была отклонена!'})
+    else:
+        return Response({'detail': f'Вы не входите в список людей, которые работают над этой задачей. '
+                                   f'Операция была отклонена!'})
 
 
 class TaskUserAPIView(APIView):
@@ -25,15 +57,15 @@ class TaskUserAPIView(APIView):
         return Response(serializer.data)
 
 
-class TaskImageAPIView(APIView):
-    def get(self, request, pk):
-        serializer = TaskImageSerializer(models.TaskImage.objects.get(pk=pk),
-                                         context={'request': request})
-        return Response(serializer.data)
+# class TaskImageAPIView(APIView):
+#     def get(self, request, pk):
+#         serializer = TaskImageSerializer(models.TaskImage.objects.get(pk=pk),
+#                                          context={'request': request})
+#         return Response(serializer.data)
 
 
 class TaskAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
 
     def get_object(self, pk):
         try:
@@ -45,6 +77,38 @@ class TaskAPIView(APIView):
         serializer = TaskSerializer(self.get_object(task_pk), many=False)
 
         return Response(serializer.data)
+
+    def post(self, request, task_pk):
+        task_obj = self.get_object(task_pk)
+        serializer = TaskSerializer(task_obj, many=False)
+
+        return Response(serializer.data)
+
+    def put(self, request, task_pk):
+        task_obj = self.get_object(task_pk)
+        serializer = TaskSerializer(task_obj, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, task_pk):
+        task_obj = self.get_object(task_pk)
+        serializer = TaskSerializer(task_obj, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, task_pk):
+        task_obj = self.get_object(task_pk)
+        task_obj.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TaskListAPIView(ListAPIView):
