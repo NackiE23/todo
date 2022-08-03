@@ -6,7 +6,6 @@ from .views import *
 
 urlpatterns = [
     path('', main, name="main"),
-    # API
     path('api/drf-auth', include('rest_framework.urls', namespace='rest_framework')),
     path('api/token-auth', obtain_auth_token),
     path('api/task_images', api.TaskImageListCreateAPIView.as_view(), name="api_task_images"),

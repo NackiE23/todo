@@ -21,7 +21,6 @@ def close_task(request, task_pk):
     if request.user == task_obj.author:
         task_obj.status = models.TaskStatus.objects.get(name="Закрыто")
         task_obj.save()
-
         return Response({'detail': f'Задача успешно переведена в статус "Закрыто"!'})
     else:
         return Response({'detail': f'Вы не являетесь автором этой задачи. Операция была отклонена!'})
@@ -37,7 +36,6 @@ def start_task(request, task_pk):
         if task_obj.status.name == "Новая":
             task_obj.status = models.TaskStatus.objects.get(name="В работе")
             task_obj.save()
-
             return Response({'detail': f'Задача успешно переведена в статус "В работе"!'})
         else:
             return Response({'detail': f'Задача не находится в статусе "Новая". Операция была отклонена!'})
@@ -50,7 +48,7 @@ class TaskUserAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(operation_description="Get all user tasks. Add a ?status_pk or ?status_name for filtering",
-                         responses={200: TaskUserSerializer(many=True)})
+                         responses={200: TaskUserSerializer()})
     def get(self, request, user_pk):
         if request.query_params.get('status_name'):
             task_user_objs = models.TaskUser.objects.filter(user__pk=user_pk,
@@ -126,7 +124,6 @@ class TaskAPIView(APIView):
 
 
 class TaskListCreateAPIView(ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = TaskSerializer
 
     def get_queryset(self):
@@ -141,7 +138,7 @@ class TaskListCreateAPIView(ListCreateAPIView):
 
 
 class UserAPIView(APIView):
-    @swagger_auto_schema(responses={200: UserSerializer(many=True)})
+    @swagger_auto_schema(responses={200: UserSerializer()})
     def get(self, request):
         serializer = UserSerializer(models.User.objects.all(), many=True)
 

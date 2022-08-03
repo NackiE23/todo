@@ -22,19 +22,6 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
-class TaskImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TaskImage
-        fields = ('id', 'task', 'image')
-        required = ('task', 'image', )
-
-
-class ImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TaskImage
-        fields = ('image',)
-
-
 class TaskSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
 
@@ -71,6 +58,19 @@ class TaskSerializer(serializers.ModelSerializer):
                     TaskUser.objects.create(task=task, user=user_data).save()
 
         return task
+
+
+class TaskImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskImage
+        fields = ('id', 'task', 'image')
+        required = ('task', 'image', )
+
+
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskImage
+        fields = ('image',)
 
 
 class TaskUserSerializer(serializers.ModelSerializer):
