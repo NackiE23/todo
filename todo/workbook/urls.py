@@ -1,15 +1,17 @@
 from django.urls import path, include
 from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.schemas import get_schema_view
 
 from . import api
 from .views import *
 
 urlpatterns = [
     path('', main, name="main"),
+    path('api_schema', get_schema_view(title="API View"), name="api_schema"),
     # API
     path('api/drf-auth', include('rest_framework.urls', namespace='rest_framework')),
     path('api/token-auth', obtain_auth_token),
-    path('api/tasks', api.TaskListAPIView.as_view(), name="api_tasks"),
+    path('api/tasks', api.TaskListCreateAPIView.as_view(), name="api_tasks"),
     path('api/task/<int:task_pk>', api.TaskAPIView.as_view(), name="api_task"),
     path('api/close_task/<int:task_pk>', api.close_task, name="api_close_task"),
     path('api/start_task/<int:task_pk>', api.start_task, name="api_start_task"),

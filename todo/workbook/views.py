@@ -3,4 +3,4 @@ from django.shortcuts import render
 
 
 def main(request):
-    return HttpResponse('asd')
+    return HttpResponse('<a href="swagger-ui"><h1>Swagger-ui</h1></a>')
