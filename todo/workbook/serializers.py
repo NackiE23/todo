@@ -25,21 +25,64 @@ class UserSerializer(serializers.ModelSerializer):
 class TaskImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskImage
-        fields = ('image', )
+        fields = ('id', 'task', 'image')
+        required = ('task', 'image', )
+
+
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskImage
+        fields = ('image',)
 
 
 class TaskSerializer(serializers.ModelSerializer):
-    images = TaskImageSerializer(many=True)
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
         fields = ('id', 'name', 'description', 'status', 'status_name', 'author', 'author_name',
                   'images', 'created', 'last_modified', 'users', 'users_names')
+        read_only_fields = ['author', 'images', 'users']
+
+    def get_images(self, obj):
+        return [ImageSerializer(s).data for s in obj.images.all()]
+
+    def create(self, validated_data):
+        if validated_data['status'] is int:
+            status_obj = TaskStatus.objects.get(pk=validated_data['status'])
+        else:
+            status_obj = validated_data['status']
+
+        task = Task.objects.create(
+            name=validated_data['name'],
+            description=validated_data['description'],
+            status=status_obj,
+            author=self.context['request'].user
+        )
+        task.save()
+
+        if validated_data.get('users'):
+            for user_data in validated_data['users']:
+                if user_data is int:
+                    TaskUser.objects.create(task=task, user=User.objecs.get(pk=user_data)).save()
+                elif isinstance(user_data, TaskUser):
+                    TaskUser.objects.create(task=task, user=user_data.user).save()
+                elif isinstance(user_data, User):
+                    TaskUser.objects.create(task=task, user=user_data).save()
+
+        return task
 
 
 class TaskUserSerializer(serializers.ModelSerializer):
-    task = TaskSerializer(many=False)
+    class Meta:
+        model = TaskUser
+        fields = ('task', 'user')
+
+
+class DetailTaskUserSerializer(serializers.ModelSerializer):
+    task = TaskSerializer()
+    user = UserSerializer()
 
     class Meta:
         model = TaskUser
-        fields = ('task', )
+        fields = ('task', 'user')

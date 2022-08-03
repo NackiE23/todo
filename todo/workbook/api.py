@@ -1,14 +1,15 @@
 from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import api_view
-from rest_framework.generics import ListAPIView, CreateAPIView
+from rest_framework.generics import CreateAPIView, ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
 
 from . import models
 from .permissions import IsAuthorOrReadOnly
-from .serializers import TaskSerializer, UserSerializer, TaskUserSerializer
+from .serializers import TaskSerializer, UserSerializer, TaskUserSerializer, TaskImageSerializer, \
+    DetailTaskUserSerializer
 
 
 @swagger_auto_schema(method='get', operation_description="Переводит статус задачи в 'Закрыто'",
@@ -64,6 +65,21 @@ class TaskUserAPIView(APIView):
         return Response(serializer.data)
 
 
+class TaskUserCreateAPIView(CreateAPIView):
+    serializer_class = TaskUserSerializer
+
+
+class DetailTaskUserCreateAPIView(CreateAPIView):
+    serializer_class = DetailTaskUserSerializer
+
+
+class TaskImageListCreateAPIView(ListCreateAPIView):
+    serializer_class = TaskImageSerializer
+
+    def get_queryset(self):
+        return models.TaskImage.objects.all()
+
+
 class TaskAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
 
@@ -73,14 +89,14 @@ class TaskAPIView(APIView):
         except models.Task.DoesNotExist:
             raise Http404
 
-    @swagger_auto_schema(responses={200: TaskSerializer(many=False)})
+    @swagger_auto_schema(responses={200: TaskSerializer()})
     def get(self, request, task_pk):
         task_obj = self.get_object(task_pk)
-        serializer = TaskSerializer(task_obj, many=False)
+        serializer = TaskSerializer(task_obj)
 
         return Response(serializer.data)
 
-    @swagger_auto_schema(request_body=TaskSerializer(), responses={200: TaskSerializer(many=False)})
+    @swagger_auto_schema(request_body=TaskSerializer(), responses={200: TaskSerializer()})
     def put(self, request, task_pk):
         task_obj = self.get_object(task_pk)
         serializer = TaskSerializer(task_obj, data=request.data)
@@ -91,7 +107,7 @@ class TaskAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(request_body=TaskSerializer(), responses={200: TaskSerializer(many=False)})
+    @swagger_auto_schema(request_body=TaskSerializer(), responses={200: TaskSerializer()})
     def patch(self, request, task_pk):
         task_obj = self.get_object(task_pk)
         serializer = TaskSerializer(task_obj, data=request.data, partial=True)
@@ -109,11 +125,19 @@ class TaskAPIView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TaskListCreateAPIView(ListAPIView, CreateAPIView):
+class TaskListCreateAPIView(ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = TaskSerializer
 
     def get_queryset(self):
-        return models.Task.objects.all()
+        if self.request.query_params.get('status_name'):
+            task_user_objs = models.Task.objects.filter(status__name=self.request.query_params.get('status_name'))
+        elif self.request.query_params.get('status_pk'):
+            task_user_objs = models.Task.objects.filter(status__pk=self.request.query_params.get('status_pk'))
+        else:
+            task_user_objs = models.Task.objects.all()
+
+        return task_user_objs
 
 
 class UserAPIView(APIView):
@@ -123,7 +147,7 @@ class UserAPIView(APIView):
 
         return Response(serializer.data)
 
-    @swagger_auto_schema(request_body=UserSerializer(), responses={201: UserSerializer(many=False)})
+    @swagger_auto_schema(request_body=UserSerializer(), responses={201: UserSerializer()})
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
